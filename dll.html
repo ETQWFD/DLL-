@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DLL运行</title>
+    
+    <!-- 网站图标 (favicon) - 适用于浏览器 -->
+    <link rel="icon" href="app.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="app.ico" type="image/x-icon">
+    
+    <hta:application 
+        id="oHTA"
+        applicationname="DLL运行"
+        border="thick"
+        borderstyle="normal"
+        caption="yes"
+        icon="app.ico"  <!-- HTA 窗口图标 -->
+        maximizable="yes"
+        minimizeable="yes"
+        showintaskbar="yes"
+        singleinstance="no"
+        sysmenu="yes"
+        version="1.0"
+        windowstate="normal"
+    />
+    <style>
+        /* 全局重置 — Kali 风格深色基调 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Fira Code', 'Source Code Pro', 'Courier New', monospace;
+        }
+        body {
+            background: #0c0f14;  /* Kali 深灰黑 */
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        /* 主面板 — 仿 Kali 终端/面板质感 */
+        .main-panel {
+            width: 860px;
+            max-width: 96%;
+            background: #171b22;  /* 深色磨砂 */
+            border-radius: 16px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px #2d3540 inset, 0 0 0 1px #2f3a47;
+            padding: 24px 28px 28px 28px;
+            position: relative;
+            transition: 0.15s;
+            border: 1px solid #2e3a47;
+        }
+        /* 左上角：官方文档 + 日期 (Kali 风格绿色/灰) */
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .doc-btn {
+            background: #1f2a36;
+            border: none;
+            color: #8fde8f;  /* Kali 标志性绿色 */
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 8px 22px;
+            border-radius: 6px;
+            box-shadow: 0 2px 0 #0b1015, 0 4px 10px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: 0.08s ease;
+            letter-spacing: 0.5px;
+            border: 1px solid #3b4d5e;
+            text-shadow: 0 0 6px rgba(80, 200, 80, 0.2);
+        }
+        .doc-btn:hover {
+            background: #2c3b4b;
+            color: #b0f0b0;
+            transform: scale(0.97);
+            border-color: #5f7e94;
+        }
+        .doc-btn:active {
+            transform: scale(0.93);
+        }
+        .today-date {
+            color: #a0b8c9;
+            background: #141b22;
+            padding: 5px 18px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 400;
+            border: 1px solid #2e3d4b;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+            letter-spacing: 0.3px;
+        }
+        /* 主体布局：左（下载） + 右（信息） */
+        .content-row {
+            display: flex;
+            align-items: stretch;
+            gap: 28px;
+            flex-wrap: wrap;
+        }
+        /* 左侧 – 下载按钮区 (Kali 风格强化) */
+        .left-download {
+            flex: 0 0 170px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #131a21;
+            border-radius: 12px;
+            padding: 22px 12px;
+            border: 1px solid #2f3e4d;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+            min-height: 190px;
+        }
+        .download-btn {
+            background: #2d7a3a;  /* Kali 绿 */
+            border: none;
+            color: white;
+            font-weight: 700;
+            font-size: 1.3rem;
+            padding: 18px 18px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 150px;
+            box-shadow: 0 6px 0 #14441d, 0 8px 18px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: 0.06s linear;
+            letter-spacing: 1px;
+            border: 1px solid #47a857;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .download-btn:hover {
+            background: #3b9c4b;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 #14441d, 0 12px 28px rgba(0,0,0,0.6);
+            border-color: #6bc77b;
+        }
+        .download-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #14441d;
+        }
+        .download-icon {
+            font-size: 1.6rem;
+            line-height: 1;
+            filter: drop-shadow(0 0 4px rgba(0,255,0,0.2));
+        }
+        /* 右侧 – 信息 (Kali 终端风格) */
+        .right-info {
+            flex: 1;
+            min-width: 160px;
+            background: #10171e;
+            border-radius: 12px;
+            padding: 20px 24px;
+            border: 1px solid #2b3947;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: #c8dae8;
+        }
+        .right-info h3 {
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            color: #9fcc9f;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 8px rgba(80, 200, 80, 0.15);
+        }
+        .right-info p {
+            font-size: 0.95rem;
+            opacity: 0.85;
+            line-height: 1.6;
+            font-weight: 300;
+            color: #b4c9db;
+        }
+        .right-info .sub {
+            margin-top: 14px;
+            font-size: 0.75rem;
+            opacity: 0.5;
+            border-top: 1px solid #25323f;
+            padding-top: 12px;
+            font-style: italic;
+            color: #7d94a8;
+        }
+        /* 官方文档弹窗 — 保持简洁但带 Kali 暗色 */
+        .doc-popup {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 12, 0.78);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        .doc-popup.active {
+            display: flex;
+        }
+        .doc-window {
+            background: #1b232d;
+            max-width: 440px;
+            width: 90%;
+            border-radius: 16px;
+            padding: 32px 30px 28px;
+            box-shadow: 0 40px 70px rgba(0,0,0,0.8), 0 0 0 1px #3b4d5e;
+            border: 1px solid #314250;
+            animation: popFade 0.12s ease;
+        }
+        @keyframes popFade {
+            0% { opacity: 0; transform: scale(0.94) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .doc-window h2 {
+            color: #9fcc9f;
+            font-weight: 500;
+            font-size: 1.6rem;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #2f4052;
+            padding-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        .doc-prop {
+            background: #111a22;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin: 16px 0 20px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+            border: 1px solid #293949;
+        }
+        .doc-prop p {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #25323f;
+            font-size: 0.95rem;
+            color: #c2d4e5;
+        }
+        .doc-prop p:last-child {
+            border-bottom: none;
+        }
+        .doc-prop .label {
+            font-weight: 500;
+            color: #9ab8d1;
+        }
+        .doc-prop .value {
+            color: #d6e6f5;
+            font-weight: 300;
+        }
+        .doc-desc {
+            background: #0d151e;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 14px 0 22px;
+            color: #b8cddf;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-left: 4px solid #3a8f4a;
+            border: 1px solid #2a3b4b;
+            border-left-width: 6px;
+        }
+        .doc-close-btn {
+            background: #2d7a3a;
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 12px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            float: right;
+            box-shadow: 0 4px 0 #14441d;
+            transition: 0.06s;
+            border: 1px solid #47a857;
+        }
+        .doc-close-btn:hover {
+            background: #3b9c4b;
+            transform: scale(0.96);
+        }
+        .doc-close-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #14441d;
+        }
+        /* 小屏适配 */
+        @media (max-width: 640px) {
+            .main-panel { padding: 18px; }
+            .left-download { flex: 1 1 100%; min-height: 120px; flex-direction: row; }
+            .download-btn { max-width: 200px; }
+            .content-row { gap: 18px; }
+            .top-left { gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-panel">
+    <!-- 左上角：官方文档 + 日期 (Kali 风格) -->
+    <div class="top-left">
+        <button class="doc-btn" id="docOpenBtn">📄 官方文档</button>
+        <span class="today-date" id="todayDate">📅 2026-07-24</span>
+    </div>
+
+    <!-- 主体 row -->
+    <div class="content-row">
+        <!-- 左侧：下载按钮 (仿 Kali 绿) -->
+        <div class="left-download">
+            <button class="download-btn" id="downloadBtn">
+                <span class="download-icon">⬇</span> 下载
+            </button>
+        </div>
+        <!-- 右侧：信息 (Kali 终端风) -->
+        <div class="right-info">
+            <h3>⚙️ DLL 运行</h3>
+            <p>轻量级辅助工具 · 点击左侧下载跳转 GitHub下载最新版</p>
+            <div class="sub">版本 1.0 · 就绪</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 官方文档 弹窗 (保持简洁) ===== -->
+<div class="doc-popup" id="docPopup">
+    <div class="doc-window">
+        <h2>📖 官方文档</h2>
+        <div class="doc-prop">
+            <p><span class="label">名称</span><span class="value">DLL运行</span></p>
+            <p><span class="label">类型</span><span class="value">EXE应用</span></p>
+            <p><span class="label">版本</span><span class="value">1.0.0</span></p>
+            <p><span class="label">发布日期</span><span class="value">2026-07-24</span></p>
+            <p><span class="label">作者</span><span class="value">ET</span></p>
+        </div>
+        <div class="doc-desc">
+            <strong>📌 用途说明</strong><br>
+            用于快速加载 DLL 运行环境，提供图形化入口。<br>
+            点击「下载」按钮下载 GitHub 仓库获取最新版本。
+        </div>
+        <button class="doc-close-btn" id="docCloseBtn">✔ 我知道了</button>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // 日期：显示当天
+        const dateEl = document.getElementById('todayDate');
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        dateEl.textContent = '📅 ' + y + '-' + m + '-' + d;
+
+        // 下载按钮 → GitHub
+        const downloadBtn = document.getElementById('downloadBtn');
+        downloadBtn.addEventListener('click', function(e) {
+            window.location.href = 'https://github.com/ETQWFD/DLL/releases/download/DLL/DllRunner.exe';
+        });
+
+        // 官方文档弹窗
+        const popup = document.getElementById('docPopup');
+        const openBtn = document.getElementById('docOpenBtn');
+        const closeBtn = document.getElementById('docCloseBtn');
+
+        function openPopup() {
+            popup.classList.add('active');
+        }
+        function closePopup() {
+            popup.classList.remove('active');
+        }
+
+        openBtn.addEventListener('click', openPopup);
+        closeBtn.addEventListener('click', closePopup);
+
+        popup.addEventListener('click', function(e) {
+            if (e.target === popup) closePopup();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && popup.classList.contains('active')) closePopup();
+        });
+
+        const docWindow = document.querySelector('.doc-window');
+        if (docWindow) {
+            docWindow.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+    })();
+</script>
+</body>
+</html>
